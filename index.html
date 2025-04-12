@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .questions-container {
+            margin-top: 2rem;
+        }
+
+        #questions {
+            list-style: none;
+        }
+
+        #questions li {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+
+        #loading, #error {
+            text-align: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #loading {
+            color: #007bff;
+        }
+
+        #error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-radius: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Question Generator</h1>
+        <div class="input-section">
+            <input type="text" id="topic" placeholder="Enter a topic...">
+            <button id="generate">Generate Questions</button>
+        </div>
+        <div class="questions-container">
+            <div id="loading" class="hidden">Generating questions...</div>
+            <div id="error" class="hidden"></div>
+            <ul id="questions"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const topicInput = document.getElementById('topic');
+            const generateButton = document.getElementById('generate');
+            const questionsList = document.getElementById('questions');
+            const loadingElement = document.getElementById('loading');
+            const errorElement = document.getElementById('error');
+
+            generateButton.addEventListener('click', async () => {
+                const topic = topicInput.value.trim();
+                if (!topic) {
+                    showError('Please enter a topic');
+                    return;
+                }
+
+                // Clear previous questions and show loading
+                questionsList.innerHTML = '';
+                hideError();
+                showLoading();
+                generateButton.disabled = true;
+
+                try {
+                    const response = await fetch('/generate_questions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ topic }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to generate questions');
+                    }
+
+                    // Display questions
+                    data.questions.forEach(question => {
+                        const li = document.createElement('li');
+                        li.textContent = question;
+                        questionsList.appendChild(li);
+                    });
+                } catch (error) {
+                    showError(error.message);
+                } finally {
+                    hideLoading();
+                    generateButton.disabled = false;
+                }
+            });
+
+            function showLoading() {
+                loadingElement.classList.remove('hidden');
+            }
+
+            function hideLoading() {
+                loadingElement.classList.add('hidden');
+            }
+
+            function showError(message) {
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
+            }
+
+            function hideError() {
+                errorElement.classList.add('hidden');
+            }
+
+            // Allow generating questions with Enter key
+            topicInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !generateButton.disabled) {
+                    generateButton.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
